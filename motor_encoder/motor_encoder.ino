@@ -1,10 +1,10 @@
  
- #define inA 4 //encoder input
- #define inB 5 //encoder input
+ #define inA 2 //encoder input
+ #define inB 3 //encoder input
 
  #define motorin1 9 //motor in1
- #define motorin2 8//motor in2
- #define en 10 //motor enable
+ #define motorin2 10//motor in2
+ #define en 11 //motor enable
 
  int counter = 0; 
  int State;
@@ -65,5 +65,4 @@ int flag=0;
       stopm();
   }
   LastState = State;
-
  }

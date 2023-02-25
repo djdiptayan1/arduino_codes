@@ -4,11 +4,14 @@
 #include <SD.h>
 
 #define tot 5  //sets total number of people
+//relay
+constexpr uint8_t RELAY_PIN = D0;
 
 //DISPLAY
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 int flag;
 int pos = 0;
+
 //RFID
 constexpr uint8_t RST_PIN = D3;
 constexpr uint8_t SS_PIN = D4;
@@ -19,7 +22,6 @@ String tag;
 //SDCARD
 File myfile;                //create a file named attendance
 constexpr uint8_t cs = D8;  //NODE MCU
-
 
 //ID CARD DETAILS
 String UID[tot] = { "20115312290", "249224147101", "105199145101", "2176091112", "89195136101" };
@@ -32,22 +34,14 @@ void setup() {
   Serial.begin(9600);
   SPI.begin();      // Init SPI bus
   rfid.PCD_Init();  // Init MFRC522
-
+  //RELAY
+  pinMode(RELAY_PIN, OUTPUT);
   //SD CARD
-  Serial.println("Initializing SD card");
-  if (!SD.begin(cs)) {
-    Serial.println("initialization failed");
-    while (1)
-      ;
-  }
-  Serial.println("initialization DONE");
-  if (SD.exists("attendance.csv"))
-    Serial.println("FILE EXISTS");
-  else
-    Serial.println("FILE DOESN'T EXISTS");
+  //sdinitialize();
 }
 
 void loop() {
+  digitalWrite(RELAY_PIN, HIGH);
   String data = "";
   lcd.clear();
   lcd.setCursor(2, 0);
@@ -83,6 +77,10 @@ void loop() {
       myfile.println(data);
       Serial.println("WROTE IN FILE SUCCESSFUL");
       myfile.close();
+      digitalWrite(RELAY_PIN, LOW);
+      ;
+      delay(6000);
+      digitalWrite(RELAY_PIN, HIGH);
     } else {
       lcd.clear();
       lcd.setCursor(2, 0);
@@ -96,4 +94,17 @@ void loop() {
     rfid.PICC_HaltA();
     rfid.PCD_StopCrypto1();
   }
+}
+void sdinitialize() {
+  Serial.println("Initializing SD card");
+  if (!SD.begin(cs)) {
+    Serial.println("initialization failed");
+    while (1)
+      ;
+  }
+  Serial.println("initialization DONE");
+  if (SD.exists("attendance.csv"))
+    Serial.println("FILE EXISTS");
+  else
+    Serial.println("FILE DOESN'T EXISTS");
 }

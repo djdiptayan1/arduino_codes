@@ -45,7 +45,7 @@ void setup() {
   rfid.PCD_Init();  // Init MFRC522
 
   //SD CARD
-  sdinitialize();
+  //sdinitialize();
   //wifi
   //connectwifi();
 }
@@ -81,7 +81,8 @@ void loop() {
       lcd.println(id[tag]);
       delay(2000);
       myfile = SD.open("attendance.csv", FILE_WRITE);
-      data = id[tag] + "," + id.first;
+      data = id[tag] + "," + tag; 
+      //data = id[tag] + "," + id.first();
       myfile.println(data);
       Serial.println("WROTE IN FILE SUCCESSFUL");
       myfile.close();

@@ -13,22 +13,21 @@ const char* password = "G662+28k";
 //DISPLAY
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
 int flag;
-int fac_flag;
+int fac_flag;  //faculty flag
 int pos;
-int fac_pos;
+int fac_pos;  //faculty pos
 
 //RFID
 constexpr uint8_t RST_PIN = D3;
 constexpr uint8_t SS_PIN = D4;
 MFRC522 rfid(SS_PIN, RST_PIN);  // Instance of the class
 MFRC522::MIFARE_Key key;
-String tag;
 String faculty_tag;
+
 
 //SDCARD
 File myfile;                //create a file named attendance
 constexpr uint8_t cs = D8;  //NODE MCU
-
 
 //ID CARD DETAILS
 String facUID[totfac] = { "249224147101" };
@@ -37,6 +36,7 @@ String UID[tot] = { "20115312290", "105199145101", "2176091112", "89195136101" }
 String name[tot] = { "Krrish", "Ayan", "Daniel", "Siddhima" };
 
 char fac;
+String old = "";
 
 void setup() {
   lcd.init();
@@ -47,98 +47,64 @@ void setup() {
   rfid.PCD_Init();  // Init MFRC522
 
   //SD CARD
-  sdinitialize();
+  //sdinitialize();
   //wifi
   //connectwifi();
-  lcd.clear();
-  lcd.setCursor(2, 0);
-  lcd.print("Faculty scan");
-  Serial.println("FACULTY SCAN");
-  lcd.setCursor(1, 1);
 }
 
 void loop() {
-  String data = "";
+  String a = read_rfid();
+  Serial.println(a);
+  for (int i = 0; i < totfac; i++) {
+    if (a == facUID[i]) {
+      Serial.println(a);
+      fac_flag = 1;
+      fac_pos = i;
+      break;
+    } else
+      fac_flag = 0;
+  }
+  if (fac_flag == 1) {
+    switch (facname[fac_pos]) {
+      case 'm':
+        {
+          //String student = read_rfid();
+          for (int i = 0; i < tot; i++) {
+            if (student == UID[i]) {
+              pos = i;
+              flag = 1;
+              break;
+            } else
+              flag = 0;
+          }
+          if (flag == 1)
+            Serial.println("student present");
+          else Serial.println("invalid");
+        }
+        break;
+      default:
+        {
+          Serial.println("faculty not found");
+        }
+        break;
+    }
+  }
+  else
+    Serial.println("INVALID FACULTY");
+}
+
+String read_rfid() {
+  String tag = "";
   if (!rfid.PICC_IsNewCardPresent())
-    return;
+    return "";
   if (rfid.PICC_ReadCardSerial()) {
     for (byte i = 0; i < 4; i++) {
-      faculty_tag += rfid.uid.uidByte[i];
+      tag += rfid.uid.uidByte[i];
     }
-    Serial.println("faculty tag=========" + faculty_tag);
-    for (int i = 0; i < totfac; i++) {
-      if (faculty_tag == facUID[i]) {
-        fac_flag = 1;
-        fac_pos = i;
-        break;
-      } else
-        fac_flag = 0;
-    }
-    if (fac_flag == 1) {
-      switch (facname[fac_pos]) {
-        case 'm':
-          Serial.println("faculty : " + faculty_tag + "\t" + facname[fac_pos]);
-          lcd.clear();
-          lcd.setCursor(2, 0);
-          lcd.print(" student scan");
-          Serial.println(" Student scan");
-          /**     read RFID again
-                for loop
-                if (tag==UID[i])
-                  print and store and send to data base
-                if (tag == facUID)
-                  System.exit(0);
-        **/
-          if (!rfid.PICC_IsNewCardPresent())
-            return;
-          if (rfid.PICC_ReadCardSerial()) {
-            for (byte i = 0; i < 4; i++) {
-              tag += rfid.uid.uidByte[i];
-            }
-            for (int i = 0; i < tot; i++) {
-              if (tag == UID[i]) {
-                flag = 1;
-                pos = i;
-                break;
-              } else
-                flag = 0;
-            }
-
-            if (flag == 1) {
-              lcd.clear();
-              lcd.setCursor(2, 0);
-              lcd.print("Welcome");
-              lcd.setCursor(1, 1);
-              Serial.println(name[pos]);
-              lcd.println(name[pos]);
-              delay(2000);
-              myfile = SD.open("attendance.csv", FILE_WRITE);
-              data = name[pos] + "," + UID[pos];
-              myfile.println(data);
-              Serial.println("WROTE IN FILE SUCCESSFUL");
-              myfile.close();
-
-            } else {
-              lcd.clear();
-              lcd.setCursor(2, 0);
-              lcd.print("Who Tf is You ?");
-              lcd.setCursor(1, 1);
-              lcd.print(tag);
-              Serial.println(tag);
-              delay(2000);
-            }
-          }
-          break;
-        default:
-          Serial.println("INVALID");
-      }
-    } else Serial.println("INVALID FACULTY");
-
-    tag = "";
-    faculty_tag = "";
-    rfid.PICC_HaltA();
-    rfid.PCD_StopCrypto1();
   }
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
+  return tag;
 }
 void connectwifi() {
   Serial.print("Wifi connecting to ");
