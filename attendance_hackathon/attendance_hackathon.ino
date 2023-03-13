@@ -3,6 +3,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <SD.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
 
 #define tot 5  //sets total number of people
 //WIFI
@@ -22,13 +23,21 @@ MFRC522::MIFARE_Key key;
 String tag;
 
 //SDCARD
-File myfile;                //create a file named attendance
-constexpr uint8_t cs = D8;  //NODE MCU
+File myfile;                   //create a file named attendance
+constexpr uint8_t cs = D8;     //NODE MCU
 constexpr uint8_t relay = D0;  //relay
 
 //ID CARD DETAILS
 String UID[tot] = { "20115312290", "249224147101", "105199145101", "2176091112", "89195136101" };
 String name[tot] = { "Krrish", "Diptayan", "Ayan", "Daniel", "Siddhima" };
+
+//GOOGLE SHEET
+String server = "http://maker.ifttt.com";
+String eventName = "data";
+String IFTTT_Key = "baQbPWpUvivRmuUXHnRzxd";
+String IFTTTUrl = "https://maker.ifttt.com/trigger/data/with/key/baQbPWpUvivRmuUXHnRzxd";
+String value1;
+String value2;
 
 void setup() {
   lcd.init();
@@ -39,7 +48,7 @@ void setup() {
   rfid.PCD_Init();  // Init MFRC522
 
   //SD CARD
-  sdinitialize();
+  //sdinitialize();
   //wifi
   //connectwifi();
 }
@@ -69,6 +78,8 @@ void loop() {
     }
 
     if (flag == 1) {
+      value1 = name[pos];  //for google sheets
+      value2 = UID[pos];   // for google sheets
       lcd.clear();
       lcd.setCursor(2, 0);
       lcd.print("Welcome");
@@ -81,8 +92,10 @@ void loop() {
       myfile.println(data);
       Serial.println("WROTE IN FILE SUCCESSFUL");
       myfile.close();
-      
+      sendDataToSheet();
     } else {
+      value1 = "UNKNOWN";  //for google sheets
+      value2 = tag;        // for google sheets
       lcd.clear();
       lcd.setCursor(2, 0);
       lcd.print("Who Tf is You ?");
@@ -110,6 +123,7 @@ void connectwifi() {
   Serial.println("Wifi Connected Success!");
   Serial.print("NodeMCU IP Address : ");
   Serial.println(WiFi.localIP());
+  client.setInsecure();
 }
 void sdinitialize() {
   Serial.println("Initializing SD card");
@@ -123,4 +137,28 @@ void sdinitialize() {
     Serial.println("FILE EXISTS");
   else
     Serial.println("FILE DOESN'T EXISTS");
+}
+void sendDataToSheet(void) {
+  String url = server + "/trigger/" + eventName + "/with/key/" + IFTTT_Key + "?value1=" + value1 + "&value2=" + value2 + "&value3=" + value3;
+  Serial.println(url);
+  //Start to send data to IFTTT
+  HTTPClient http;
+  Serial.print("[HTTP] begin...\n");
+  http.begin(url);  //HTTP
+  Serial.print("[HTTP] GET...\n");
+  // start connection and send HTTP header
+  int httpCode = http.GET();
+  // httpCode will be negative on error
+  if (httpCode > 0) {
+    // HTTP header has been send and Server response header has been handled
+    Serial.printf("[HTTP] GET... code: %d\n", httpCode);
+    // file found at server
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      Serial.println(payload);
+    }
+  } else {
+    Serial.printf("[HTTP] GET... failed, error: %s\n", http.errorToString(httpCode).c_str());
+  }
+  http.end();
 }
